@@ -60,14 +60,12 @@
         var loop = true;
         var fileExist = true;
         var madeTable = 0;
-        var xhr = new XMLHttpRequest();
-        var url = 'setup/progress.php';
-        if (madeTable < 9)
-            xhr.open('GET', 'setup/index.php?db');
-        else if (loop)
-            xhr.open('GET', 'setup/index.php');
-        xhr.send();
 
+        var tables = new XMLHttpRequest();
+        tables.open('GET', 'setup/index.php');
+        tables.send();
+
+        var url = 'setup/progress.php';
         var interv = setInterval(function() {
                 var self = this;
                         $.ajax({
@@ -77,6 +75,7 @@
                             success     :   function( response )
                             {
                                 if (loop == true) {
+                                console.log(response);
                                 let req = JSON.parse(response);
                                 madeTable = req.dbRow;
                                 let nbHobby = req.nbHobby;
@@ -85,7 +84,6 @@
                                 let progUsers = req.progUsers;
                                 let distributedTags = req.distributedTags;
                                 let popularTags = req.popularTags;
-
                                 let progressBar = parseInt((100 * (progHobby + progUsers)) / (nbHobby + nbUsers));
                                 document.getElementById('percent').innerHTML = progressBar + '%';
                                 document.getElementById('totalHobby').innerHTML = nbHobby;
@@ -101,13 +99,13 @@
                                         document.getElementById('bdd').setAttribute('class', 'text-center text-success');
                                         document.getElementById('bdd').setAttribute('style', 'font-size: 13px;font-weight: bold;');
                                         document.getElementById('bdd').innerHTML = 'Base de données crée !';
-                                    if (nbHobby <= progHobby) {
+                                    if (nbHobby == progHobby) {
                                         document.getElementById('label_hobby').setAttribute('class', 'text-center text-success');
                                         document.getElementById('label_hobby').setAttribute('style', 'font-size: 13px;font-weight: bold;');
                                         document.getElementById('label_users').setAttribute('style', 'font-size: 13px;');
                                         document.getElementById('nbTags').setAttribute('style', 'font-size: 13px;');
                                     }
-                                    if (nbUsers <= progUsers) {
+                                    if (nbUsers == progUsers) {
                                         document.getElementById('label_users').setAttribute('class', 'text-center text-success');
                                         document.getElementById('label_users').setAttribute('style', 'font-size: 13px;font-weight: bold;');
                                         document.getElementById('nbTags').setAttribute('class', 'text-center text-success');

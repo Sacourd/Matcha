@@ -29,7 +29,6 @@ $DB = new PDO("mysql:dbname=matcha;host=localhost", $username, $pass);
 $nbRows  	= $DB->query("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'matcha'");
 $nbRowFetch = $nbRows->fetch()[0];
 
-if (isset($_GET['db']) AND $nbRowFetch < 9) {
 	$sql = "DROP TABLE IF EXISTS `alerts`;
 	CREATE TABLE IF NOT EXISTS `alerts` (
 	  `id` int(11) NOT NULL AUTO_INCREMENT,
@@ -136,8 +135,6 @@ if (isset($_GET['db']) AND $nbRowFetch < 9) {
 	    echo $e->getMessage();
 	    die();
 	}
-	exit();
-}
 
 require_once('../Class/Libft.php');
 
