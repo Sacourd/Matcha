@@ -4,13 +4,12 @@ require_once('config/config.php');
 require_once('Class/Front.php');
 
 $Front = new Matcha\Front($DB, 'index');
-$Libft = new Matcha\Libft($DB);
 
 if (isset($_GET['key'])) {
     $key = htmlentities($_GET['key']);
-    if ($Libft->countOcc("users", "registrationkey", "'$key'") == 1)
+    if ($Libft->countOcc("users", "registrationkey", "registrationkey = '$key'") == 1)
         $Libft->updateCol("users", array("registrationkey"), "registrationkey = '$key'", array(0));
-    header('Location: /');
+    
 }
 
 if (isset($_GET['logout'])) {
@@ -53,9 +52,7 @@ if (isset($_GET['logout'])) {
                 <em>Trouve ta voie ici !</em>
             </h2>
 
-            <button class="button" type="button" data-hover="Retrouvez !" style="background-color:#FF6E6E;color:red;opacity: 70%;border-color:red">
-                <span>Recherchez</span>
-            </button>
+            <?= $Front->indexButton(); ?>
 
         </div>
 

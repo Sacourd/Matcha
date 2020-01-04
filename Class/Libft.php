@@ -18,7 +18,7 @@ class Libft {
 		return ($nbOcc->rowCount());
 	}
 
-    public function selectSQL($table, $col, $cdt, $value) {
+    public function selectSQL($table, $col, $cdt = array(), $value = array()) {
         if (count($cdt) != count($value)) {
             print("Une erreur dans Libft->selectSQL est survenue. Le nombre de colonnes à mettre à jour est différent du nombre de valeurs.<br>Trace:");
             var_dump($cdt);
@@ -40,7 +40,7 @@ class Libft {
         return ($query->fetch(PDO::FETCH_ASSOC));
     }
 
-    public function updateCol($table, $col, $cdt, $value) {
+    public function updateCol($table, $col = array(), $cdt, $value = array()) {
         $i = 0;
         if (count($col) != count($value)) {
             print("Une erreur dans Libft->updateCol est survenue. Le nombre de colonnes à mettre à jour est différent du nombre de valeurs.<br>Trace:");
@@ -85,7 +85,7 @@ class Libft {
         $query = $this->db->query($statement);
     }
 
-    public function selectAndFetch($table, $col, $cdt, $value, $all = 0) {
+    public function selectAndFetch($table, $col, $cdt, $value = array(), $all = 0) {
         $statement = "SELECT $col FROM $table WHERE $cdt";
         $query = $this->db->prepare($statement);
         $query->execute(array_values($value));
@@ -96,12 +96,17 @@ class Libft {
         return ($result);
     }
 
-	public function ft_sendMail($to, $subject, $message, $senderEmail, $senderName, $files = array()) { 
+	public function ft_sendMail($to, $subject, $message, $senderEmail = 'matcha@42.fr', $senderName = 'Matcha', $files = array()) { 
         $from 			= $senderName." <".$senderEmail.">";  
         $headers 		= "De: $from"; 
         $semi_rand 		= md5(time());  
         $mime_boundary 	= "==Multipart_Boundary_x{$semi_rand}x";  
      
+        $message .= 'Cordialement,<br>
+        L\'équipe Matcha<br><br>
+
+        Note: Ceci est un mail automatique, merci de ne pas y répondre.';
+
         $headers 		.= "\nMIME-Version: 1.0\n" . "Content-Type: multipart/mixed;\n" . " boundary=\"{$mime_boundary}\"";  
         $message 		= "--{$mime_boundary}\n" . "Content-Type: text/html; charset=\"UTF-8\"\n" . 
         "Content-Transfer-Encoding: 7bit\n\n" . $message . "\n\n";
@@ -158,8 +163,11 @@ class Libft {
     }
 
     public function humanTiming($time) {
+
+        setlocale(LC_TIME, "fr_FR", "French");
+        
         $time = strtotime($time);
-        $time = strtotime(date('Y-m-d h:i:s', time())) - $time;
+        $time = time() - $time;
         $tokens = array(
             31536000 	=> 'an',
             2592000 	=> 'mois',
@@ -174,7 +182,7 @@ class Libft {
             $numberOfUnits = floor($time / $unit);
             if ($time == 0)
                 return 'un instant';
-            return strtoupper($numberOfUnits.' '.$text.(($numberOfUnits > 1 AND $text != 'mois')?'s':''));
+            return ($numberOfUnits.' '.$text.(($numberOfUnits > 1 AND $text != 'mois')?'s':''));
         }
     }
 
@@ -204,6 +212,19 @@ class Libft {
 
     public function updateLastActivity($session) {
         $this->updateCol("users", array("last_activity"), "id = $session", array(date('Y-m-d H:i:s')));
+    }
+
+    public function haversine($latitudeFrom, $longitudeFrom, $latitudeTo, $longitudeTo, $earthRadius = 6371000) {
+        $latFrom    = deg2rad($latitudeFrom);
+        $lonFrom    = deg2rad($longitudeFrom);
+        $latTo      = deg2rad($latitudeTo);
+        $lonTo      = deg2rad($longitudeTo);
+
+        $latDelta   = $latTo - $latFrom;
+        $lonDelta   = $lonTo - $lonFrom;
+        
+        $angle      = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) + cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+        return (($angle * $earthRadius) / 1000);
     }
 
 }

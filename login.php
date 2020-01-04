@@ -17,8 +17,10 @@ if (isset($_POST['submit']) AND isset($_POST['username']) AND isset($_POST['pass
         header('Location: /');
     else if ($log == -1)
         $alert = '<div class="alert alert-danger" role="alert"><span>Le compte attends d\'être validé par mail !</span></div>';
-    else
+    else if ($log == 0)
         $alert = '<div class="alert alert-danger" role="alert"><span>Les identifiants sont incorrects</span></div>';
+    else
+        $alert = '<div class="alert alert-danger" role="alert"><span>Cet utilisateur est banni</span></div>';
 
 }
 

@@ -3,7 +3,8 @@
 require_once('config/config.php');
 require_once('Class/Users.php');
 
-$alert = null;
+if ($userid != -1)
+    header('Location: /');
 
 if (isset($_POST['submit'])) {
     if (empty($_POST['username']) OR empty($_POST['password']) OR empty($_POST['password-confirm']) OR empty($_POST['email']) OR empty($_POST['cgu']))
@@ -13,10 +14,8 @@ if (isset($_POST['submit'])) {
             "latitude"  => null,
             "longitude" => null);
         $Users = new Matcha\Users($DB);
-        if (empty($_POST['longitude']) OR empty($_POST['latitude']) OR !is_numeric($_POST['longitude']) OR !is_numeric($_POST['latitude'])) {
-            $ip = $Users->getIp();
-            $localisation = $Users->getLocalisationWithIP($ip, $localisation);
-        }
+        if (empty($_POST['longitude']) OR empty($_POST['latitude']) OR !is_numeric($_POST['longitude']) OR !is_numeric($_POST['latitude']))
+            $localisation = $Users->getLocalisationWithIP($localisation);
         else {
             $localisation['longitude']  = $_POST['longitude'];
             $localisation['latitude']   = $_POST['latitude'];
@@ -90,22 +89,8 @@ if (isset($_POST['submit'])) {
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/bs-init.js"></script>
+    <script src="assets/js/getpos.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.1.1/aos.js"></script>
 </body>
-
-<script type="text/javascript">
-    
-    var longitude = document.getElementsByName("longitude")[0];
-    var latitude  = document.getElementsByName("latitude")[0];
-
-    if (navigator.geolocation)
-        navigator.geolocation.getCurrentPosition(getPos);
-
-    function getPos(position) {
-        longitude.value = position.coords.longitude;
-        latitude.value  = position.coords.latitude;
-    }
-
-</script>
 
 </html>

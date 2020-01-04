@@ -1,5 +1,15 @@
 <?php
-// PrqP8u}-8n'4Y:3Q
+
+/* CALCUL DU SCORE DE POPULARITE  ///////////////
+											   //
+Envoyer un message 					= 1 pt     //
+Se faire liker 					    = 100 pt   //
+Se faire deliker					= -100 pt  //
+Liker back 							= 200 pt   //
+Se faire deliker après un like back = -300 pt  //
+											   //
+///////////////////////////////////////////////*/
+
 namespace Matcha;
 
 use \PDO;
@@ -15,17 +25,9 @@ class Users extends Libft {
             $this->session = $_SESSION['id'];
 	}
 
-
 ///////////////////////////////////////////////////////////////////////////////
-	public function getIp() {
-		$parseIP = json_decode(file_get_contents("https://api.ipify.org?format=json"));
-		$ip = $parseIP->ip;
-		return ($ip);
-	}
-
-
-///////////////////////////////////////////////////////////////////////////////
-	public function getLocalisationWithIP($ip, $localisation) {
+	public function getLocalisationWithIP($localisation) {
+		 $ip = json_decode(file_get_contents("https://api.ipify.org?format=json"))->ip;
 		 $location = json_decode(file_get_contents("http://ipinfo.io/{$ip}/json"));
 		 $loc = explode(',', $location->loc);
 		 $localisation['latitude'] 	= $loc[0];
@@ -60,16 +62,9 @@ class Users extends Libft {
 
 		$subject = "Bienvenue sur Matcha $username !";
 		$message = 'Bienvenue chez nous ! Vous êtes bientôt un des nôtres ! Pour finaliser votre inscription, cliquez sur le lien suivant:<br>
-		<a href="http://localhost?key='.$registrationKey.'">Validez votre inscription</a><br><br>
+		<a href="http://localhost?key='.$registrationKey.'">Validez votre inscription</a><br><br>';
 
-		Cordialement,<br>
-		L\'équipe Matcha<br><br>
-
-		Note: Ceci est un mail automatique, merci de ne pas y répondre.';
-		$senderEmail = 'matcha@42.fr';
-		$senderName = 'Matcha';
-
-		$mail = $this->ft_sendMail($email, $subject, $message, $senderEmail, $senderName);
+		$mail = $this->ft_sendMail($email, $subject, $message);
 		if ($mail == 0)
 			return '<div class="alert alert-danger" role="alert"><span>Une erreur s\'est produite dans l\'envoi du mail.</span></div>';
 		return '<div class="alert alert-success" role="alert"><span>Un mail de confirmation a été envoyé pour valider votre compte !</span></div>';
@@ -78,7 +73,7 @@ class Users extends Libft {
 
 ///////////////////////////////////////////////////////////////////////////////
 	public function login($username, $password) {
-		$checklog = $this->db->prepare("SELECT id, password, registrationKey FROM users WHERE username = ?");
+		$checklog = $this->db->prepare("SELECT id, password, registrationKey, banned FROM users WHERE username = ?");
 		$checklog->execute(array($username));
 		if ($checklog->rowCount() == 0)
 			return (0);
@@ -87,6 +82,8 @@ class Users extends Libft {
 			return (0);
 		if ($result['registrationKey'] != 0)
 			return (-1);
+		if ($result['banned'] == 1)
+			return (-2);
 		$_SESSION['id'] = $result['id'];
 		$this->session = $_SESSION['id'];
 		$this->updateCol("users", array("logged"), "id = ".$this->session, array(1));
@@ -171,14 +168,25 @@ class Users extends Libft {
 				$change++;
 			}
 
-			// MODIFICATION DE LA DATE DE NAISSANCE
+			// MODIFICATION DE DATE DE NAISSANCE
 			if (!empty($post['birthday']) AND $userinfos['birthday'] != $post['birthday']) {
+				$now = date('Y-m-d');
+				$nowTime = strtotime($now);
+				$dateTime = strtotime($post['birthday']);
+
+				if ($nowTime < $dateTime)
+					return ('<div class="alert alert-danger alertForm" role="alert"><span>Mirai Trunks ?</span></div>');
+				else if ($nowTime - $dateTime < 567648000)
+					return ('<div class="alert alert-danger alertForm" role="alert"><span>Vous êtes trop jeune pour bénéficier de nos services</span></div>');
+
 				$splitBirthday = explode('-', $post['birthday']);
 				if (count($splitBirthday) != 3)
 					return ('<div class="alert alert-danger alertForm" role="alert"><span>La date saisie est invalide</span></div>');
 				$year 	= $splitBirthday[0];
 				$month 	= $splitBirthday[1];
 				$day 	= $splitBirthday[2];
+				if ($year < 1930)
+					return ('<div class="alert alert-danger alertForm" role="alert"><span>Désolé... Comprenez que vous ne pouvez pas vous inscrire ici...</span></div>');
 				if (!checkdate($month, $day, $year))
 					return ('<div class="alert alert-danger alertForm" role="alert"><span>La date saisie est invalide</span></div>');
 				$this->updateCol("users", array("birthday"), "id = ".$this->session, array($post['birthday']));
@@ -339,10 +347,10 @@ class Users extends Libft {
 			$view = 1;
 			$like = 1;
 			$dlike = 1;
-			$unlike = 1;
+			$dislike = 1;
 			$msg = 1;
 
-			$col = array("mail_view", "mail_like", "mail_dlike", "mail_unlike", "mail_msg");
+			$col = array("mail_view", "mail_like", "mail_dlike", "mail_dislike", "mail_msg");
 
 			if (!isset($post['view']))
 				$view = 0;
@@ -350,12 +358,12 @@ class Users extends Libft {
 				$like = 0;
 			if (!isset($post['dlike']))
 				$dlike = 0;
-			if (!isset($post['unlike']))
-				$unlike = 0;
+			if (!isset($post['dislike']))
+				$dislike = 0;
 			if (!isset($post['msg']))
 				$msg = 0;
 
-			$this->updateCol("users", $col, "id = ".$this->session, array($view, $like, $dlike, $unlike, $msg));
+			$this->updateCol("users", $col, "id = ".$this->session, array($view, $like, $dlike, $dislike, $msg));
 			$change++;
 
 		}
@@ -382,16 +390,9 @@ class Users extends Libft {
 		$subject = "Vous avez oublié votre mot de passe ?";
 		$message = 'Coucou ! Vous avez oublié votre mot de passe on dirait ? Pas de soucis, récupérez le en cliquant sur le lien suivant:<br>
 		<a href="http://localhost/forgot_password?recover='.$recoverKey.'">Changer de mot de passe</a><br>
-		<strong>Attention, le lien expirera dans 24 heures !</strong><br>
+		<strong>Attention, le lien expirera dans 24 heures à partir de la réception de ce mail !</strong><br><br>';
 
-		Cordialement,<br>
-		L\'équipe Matcha<br><br>
-
-		Note: Ceci est un mail automatique, merci de ne pas y répondre.';
-		$senderEmail = 'matcha@42.fr';
-		$senderName = 'Matcha';
-
-		$mail = $this->ft_sendMail($email, $subject, $message, $senderEmail, $senderName);
+		$mail = $this->ft_sendMail($email, $subject, $message);
 		if (!$mail)
 			return ('<div class="alert alert-danger" role="alert">Une erreur est survenue dans l\'envoi du mail</div>');
 		return ('<div class="alert alert-success" role="alert">Un mail vous a été envoyé pour récupérer votre mot de passe !</div>');
@@ -411,6 +412,222 @@ class Users extends Libft {
 		$this->deleteSQL('forgot_password', "email = '$email'");
 		header('Location: login.php');
 	}
+
+
+///////////////////////////////////////////////////////////////////////////////
+	public function searchMatcha($distance, $tri, $order, $agemin, $agemax) {
+		$userinfos = $this->selectAndFetch('users', '*', 'id = ?', array($this->session));
+		$taginfos  = $this->selectAndFetch('tags_users', 'tag', 'userid = ?', array($this->session), 1);
+
+		$tags = array();
+		$i = 0;
+		while (isset($taginfos[$i])) {
+			array_push($tags, $taginfos[$i]['tag']);
+			$i++;
+		}
+
+		$tagsList = implode(', ', $tags);
+
+		$latitude = $userinfos['latitude'];
+		$longitude = $userinfos['longitude'];
+		$userKink = $userinfos['kink'];
+		$usergender = $userinfos['gender'];
+
+		$order = $order.' '.$tri;
+
+		$kink = "(kink = $userKink OR kink = 2)";
+
+		$match = null;
+		if (($usergender == 'M' AND $userKink == 0) OR ($usergender == 'F' AND $userKink == 1))
+			$match = "AND gender = 'F' AND $kink";
+		else if (($usergender == 'M' AND $userKink == 1) OR ($usergender == 'F' AND $userKink == 0))
+			$match = "AND gender = 'M' AND $kink";
+		else if ($usergender == 'O')
+			$match = "AND gender = 'O' AND $kink";
+		else if ($usergender == 'M' AND $userKink == 2)
+			$match = "AND gender = 'M' AND kink IN ($userKink, 1) OR gender = 'F' AND kink IN ($userKink, 0)";
+		else if ($usergender == 'F' AND $userKink == 2)
+			$match = "AND ((gender = 'M' AND kink IN ($userKink, 0)) OR (gender = 'F' AND kink IN ($userKink, 1)))";
+
+		$session = $this->session;
+
+		$statement = "SELECT users.id AS user_id,
+							photos,
+							username,
+							popularity,
+							DATEDIFF(CURRENT_DATE, birthday) / 365.25 AS Age,
+							((2 * ASIN(
+								SQRT(
+								POW( SIN( (RADIANS(latitude) - RADIANS($latitude)) / 2), 2)
+								+ COS(RADIANS($latitude)) * COS(RADIANS(latitude))
+								* POW( SIN( (RADIANS(longitude) - RADIANS($longitude)) / 2), 2)
+								))) * 6371000) / 1000 AS distance,
+							COUNT(tags_users.id) AS interest,
+							COUNT(block) AS blocked
+
+					FROM 	users
+
+					INNER JOIN tags_users ON (userid = users.id AND tag IN ($tagsList))
+					LEFT JOIN blocked_users ON ((user = $session OR user = users.id) AND (block = users.id OR block = $session))
+
+					WHERE 	banned 					= 0 AND
+							registrationkey 		= 0 AND
+							firstname 				IS NOT NULL AND
+							lastname  				IS NOT NULL AND
+							SUBSTR(photos, 0, 7) 	!= 'default' AND
+							users.id 				!= $session
+							$match
+
+					GROUP BY user_id
+
+					HAVING 	COUNT(interest) >= 0
+							AND Age BETWEEN $agemin AND $agemax
+							AND distance <= $distance
+							AND blocked = 0
+
+
+					ORDER BY $order";
+		$result = $this->db->query($statement);
+		return ($result);
+
+	}
+
+
+	public function inLove($user_1, $user_2) {
+		$user1_love = $this->countOcc('love', 'id', "user = $user_1 AND likes = $user_2");
+		$user2_love = $this->countOcc('love', 'id', "user = $user_2 AND likes = $user_1");
+		if ($user1_love + $user2_love == 2)
+			return (1);
+		return (0);
+	}
+
+
+///////////////////////////////////////////////////////////////////////////////
+	public function checkUserExists($user) {
+		if ($this->countOcc('users', 'id', "id = $user AND banned = 0") == 0)
+			return (0);
+		return (1);
+	}
+
+
+///////////////////////////////////////////////////////////////////////////////
+	public function isBlocking($user, $dest) {
+		$user1_b = $this->countOcc('blocked_users', 'id', "user = $user AND block = $dest");
+		$user2_b = $this->countOcc('blocked_users', 'id', "user = $dest AND block = $user");
+		return ($user1_b + $user2_b);
+	}
+
+///////////////////////////////////////////////////////////////////////////////
+	public function addNotif($user, $dest, $type) {
+
+		if ($this->session == -1)
+			return ;
+
+		if ($this->checkUserExists($dest) == 0 OR $this->isBlocking($user, $dest) > 0)
+			return ;
+
+		$mailCheck = 'mail_'.$type;
+		$allowMail = $this->selectSQL('users', $mailCheck, array('id'), array($dest))[$mailCheck];
+		$popularity = $this->selectSQL("users", "popularity", array("id"), array($dest))['popularity'];
+
+		if ($user == $dest OR ($this->inLove($user, $dest) AND $type == 'view'))
+			return ;
+
+		if ($this->countOcc('notifications', 'id', "author = $user AND type = '$type' AND dest = $dest AND CURRENT_TIMESTAMP - time > 10 AND opened = 0") > 0
+		OR  $this->countOcc('notifications', 'id', "author = $user AND type = '$type' AND dest = $dest AND opened = 0") == 0) {
+			$this->deleteSQL('notifications', "author = $user AND dest = $dest AND type = '$type' AND opened = 0");
+			$value = array($user, $dest, $type);
+			$this->insertSQL("notifications", "author, dest, type", $value);
+			$email = $this->selectSQL('users', 'email', array('id'), array($dest))['email'];
+			$authorLink = 'http://localhost/profile.php?view='.$user;
+			if ($type == 'view') {
+				$subject = "Vous avez de la visite !";
+				$message = 'Bonjour ! On dirait que quelqu\'un vient de visiter votre profil ! Vous pouvez consultez le sien en cliquant sur le lien suivant:<br>
+					<a href="'.$authorLink.'">Qui s\'intéresse à moi?</a><br><br>';
+			}
+			elseif ($type == 'like' OR $type == 'dlike') {
+				$value = array($user, $dest);
+				$this->insertSQL("love", "user, likes", $value);
+				$this->updateCol("users", array("popularity"), "id = $dest", array($popularity + 100));
+				if ($this->inLove($user, $dest)) {
+					$this->updateCol("users", array("popularity"), "id = $user", array($popularity + 100));
+					$this->insertSQL("messages", "author, dest, message", array($dest, $user, "C'est un plaisir de te rencontrer :)"));
+					$this->insertSQL("messages", "author, dest, message", array($user, $dest, "Faisons connaissance ! :)"));
+					if ($this->selectSQL('users', 'mail_dlike', array('id'), array($dest))['mail_dlike'] == 0)
+						return ;
+					$subject = "C'est le coup de foudre !";
+					$message = 'HOURRA ! On vous a renvoyé de l\'amour ! Votre message a été entendu, et une personne souhaite aller plus loin avec vous! Qui est la personne qui vous aime en retour? Cliquez ici pour le savoir TOUT DE SUITE:<br>
+						<a href="'.$authorLink.'">Trop de stress?</a><br>
+						Nous sommes heureux pour vous, et nous souhaitons sincèrement que cette aventure dure !<br><br>';
+				}
+			}
+			elseif ($type == 'dislike' OR $type == 'break') {
+				if ($this->inLove($user, $dest)) {
+					$this->deleteSQL('notifications', "author = $user AND dest = $dest AND type = '$type' AND opened = 0");
+					$this->insertSQL("notifications", "author, dest, type", array($user, $dest, 'break'));
+					$subject = "Une aventure se termine...";
+					$message = 'Un utilisateur vient de vous dire au revoir... Vous ne pouvez plus entrer en contact avec cette personne:<br>
+					<a href="'.$authorLink.'">Qui a osé?</a><br>
+					Mais ce n\'est pas grave ! TU MERITES MIEUX ! #emo<br><br>';
+					$this->updateCol("users", array("popularity"), "id = $dest", array($popularity - 200));
+					$this->deleteSQL('love', "user = $dest AND likes = $user");
+					$this->deleteSQL('love', "user = $user AND likes = $dest");
+				}
+				else {
+					$this->deleteSQL('notifications', "author = $user AND dest = $dest AND type = '$type'");
+					$subject = "Je ne veux pas entrer en contact finalement";
+					$message = 'Un utilisateur vient de changer d\'avis ! Au début, elle vous appréciait, puis finalement bah tanpis! Voici cette personne en question:<br>
+					<a href="'.$authorLink.'">Qui s\'intéressait à moi?</a><br>
+					C\'était soudain, comme changement d\'avis !<br><br>';
+					$this->updateCol("users", array("popularity"), "id = $dest", array($popularity - 100));
+				}
+				$this->deleteSQL('notifications', "author = $user AND dest = $dest AND type = '$type' AND opened = 0");
+				$this->deleteSQL('love', "user = $user AND likes = $dest");
+			}
+		if ($allowMail)
+			$this->ft_sendMail($email, $subject, $message);
+		}
+	}
+
+///////////////////////////////////////////////////////////////////////////////
+	public function alertUser($user, $type) {
+		if ($this->session == -1)
+			return ;
+		$userid = $this->session;
+		if ($type == 'unalert') {
+			$this->deleteSQL('alerts', "user = $userid AND to_ban = $user");
+			return ;
+		}
+		if ($this->countOcc('alerts', 'id', "user = $userid AND to_ban = $user") > 0)
+			return ;
+		if ($this->countOcc('alerts', 'id', "to_ban = $user") >= 5)
+			return ;
+		$this->insertSQL("alerts", "user, to_ban", array($userid, $user));
+		if ($this->countOcc('alerts', 'id', "to_ban = $user") >= 5)
+			$this->updateCol("users", array("banned"), "id = $user", array('1'));
+	}
+
+
+///////////////////////////////////////////////////////////////////////////////
+	public function newMessage($author, $dest, $msg) {
+		if (($this->session == -1 OR $author == -1) AND $author != $dest)
+			return ;
+		$value = array($author, $dest, $msg);
+		$this->insertSQL("messages", "author, dest, message", $value);
+		$popularity = $this->selectSQL("users", "popularity", array("id"), array($dest))['popularity'];
+		$this->updateCol("users", array("popularity"), "id = $dest", array($popularity + 1));
+		$destInfos = $this->selectSQL('users', 'logged, mail_msg, email', array('id'), array($dest));
+		$email = $destInfos['email'];
+		$allowMail = $destInfos['mail_msg'];
+		$logged = $destInfos['logged'];
+		if ($allowMail == 0 OR $logged == 1)
+			return ;
+		$subject = "Nouveau message !";
+		$message = 'Vous venez de recevoir un message sur Matcha ! Ce serait bien de répondre rapidement, ouais !<br>
+						<a href="messages.php?messages='.$dest.'">Hop hop hop</a><br><br>';
+		$this->ft_sendMail($email, $subject, $message);
+	}
+
 
 }
 

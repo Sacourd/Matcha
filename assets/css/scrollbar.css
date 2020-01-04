@@ -1,0 +1,51 @@
+.sc-overflow {
+  overflow-y: auto;
+}
+
+section {
+  min-height: 400px;
+}
+
+.container {
+  max-height: 400px;
+}
+
+article {
+  height: 500px;
+  background: #f4f4f4;
+  padding: 10px;
+}
+
+.messageslist {
+	cursor: pointer;
+}
+
+.messageslist :hover {
+	cursor: pointer;
+	background-color: #ffcfcf;
+}
+
+.selected {
+  background-color: #ffcfcf;
+}
+
+.sc-overflow {
+  overflow-y: auto;
+}
+
+.scstyle-2::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+  border-radius: 10px;
+  background-color: #F5F5F5;
+}
+
+.scstyle-2::-webkit-scrollbar {
+  width: 12px;
+  background-color: #F5F5F5;
+}
+
+.scstyle-2::-webkit-scrollbar-thumb {
+  border-radius: 10px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
+  background-color: #D62929;
+}

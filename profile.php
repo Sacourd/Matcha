@@ -12,11 +12,15 @@ if (!isset($_GET['page']) AND !isset($_GET['view']))
 
 else if (!isset($_GET['view']))
     $page = htmlentities($_GET['page']);
+else
+    $page = null;
 
 $authorizedPage = array("parameters", "personal", "gestion", "photos", "notif", "blocked");
 
-if (isset($page) AND !in_array($page, $authorizedPage))
+if (isset($page) AND !in_array($page, $authorizedPage)) {
+    $sec = 'edit';
     header('Location: profile.php');
+}
 
 if ($page == 'parameters')
     $title = 'Paramètres du compte';
@@ -32,9 +36,12 @@ if ($page == 'blocked')
     $title = 'Utilisateurs bloqués';
 
 $Front = new Matcha\Front($DB, $page);
+$Users = new Matcha\Users($DB);
+
+$accessDenied = null;
+$head = 'Éditez votre profil';
 
 if (isset($_POST['submit'])) {
-    $Users = new Matcha\Users($DB);
     $alert = $Users->editProfile($_POST, $page);
 }
 
@@ -42,6 +49,42 @@ if (isset($_GET['unblock']) AND is_numeric($_GET['unblock']) AND $userid != -1) 
     $unblock = $_GET['unblock'];
     if ($Libft->countOcc('blocked_users', 'id', 'user = '.$userid.' AND block = '.$unblock) > 0)
         $Libft->deleteSQL('blocked_users', 'user = '.$userid.' AND block = '.$unblock);
+}
+
+if (isset($_GET['view'])) {
+    $accessDenied = $Front->restrictedPage();
+    $sec = 'view';
+    $idView = $_GET['view'];
+    $head = 'Voir un profil';
+    if (    ($Libft->countOcc('users', 'id', 'banned = 0 AND id = '.$idView) == 0)
+        OR  $Libft->countOcc('blocked_users', 'id', '((user = '.$userid.' AND block = '.$idView.') OR (user = '.$idView.' AND block = '.$userid.'))') > 0)
+        $accessDenied = '    <div class="row justify-content-center"><div class="col-4"><div class="alert alert-danger text-center" role="alert"><span><strong>Ce profil est inaccessible ou n\'existe pas.</strong><br></span></div></div></div>';
+    else {
+        $dataProfile = $Libft->selectAndFetch('users', '*', "id = ?", array($idView));
+        $Users->addNotif($userid, $idView, 'view');
+    }
+    if (isset($_GET['block']) AND is_numeric($_GET['block']) AND $_GET['block'] != $userid) {
+        $blockID = $_GET['block'];
+        if ($Users->checkUserExists($blockID) AND $Libft->countOcc('blocked_users', 'id', 'user = '.$userid.' AND block = '.$blockID) == 0)
+            $Libft->insertSQL("blocked_users", "user, block", array($userid, $blockID));
+    }
+    if (isset($_GET['like']) AND is_numeric($_GET['like']) AND $_GET['like'] != $userid) {
+        $likeID = $_GET['like'];
+        if ($Libft->countOcc('love', 'id', 'user = '.$userid.' AND likes = '.$likeID) == 0 AND $Libft->countOcc('love', 'id', 'user = '.$likeID.' AND likes = '.$userid) == 0)
+            $Users->addNotif($userid, $likeID, 'like');
+        else if ($Libft->countOcc('love', 'id', 'user = '.$userid.' AND likes = '.$likeID) == 1 AND $Libft->countOcc('love', 'id', 'user = '.$likeID.' AND likes = '.$userid) == 1)
+            return ;
+        else if ($Libft->countOcc('love', 'id', 'user = '.$userid.' AND likes = '.$likeID) == 0 AND $Libft->countOcc('love', 'id', 'user = '.$likeID.' AND likes = '.$userid) == 1)
+            $Users->addNotif($userid, $likeID, 'dlike');
+
+    }
+    if (isset($_GET['dislike']) AND is_numeric($_GET['dislike']) AND $_GET['dislike'] != $userid) {
+
+        $Users->addNotif($userid, $_GET['dislike'], 'dislike');
+    }
+
+    if (($sec == 'view' AND $accessDenied == NULL) AND isset($_GET['alert']) AND ($_GET['alert'] == 'alert' OR $_GET['alert'] == 'unalert'))
+        $Users->alertUser($idView, $_GET['alert']);
 }
 
 ?>
@@ -61,6 +104,7 @@ if (isset($_GET['unblock']) AND is_numeric($_GET['unblock']) AND $userid != -1) 
     <link rel="stylesheet" href="assets/css/navbar.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/aos/2.1.1/aos.css">
     <link rel="stylesheet" href="assets/css/uploadfile.css">
+    <link rel="stylesheet" href="assets/css/profilcard.css">
     <link rel="stylesheet" href="assets/css/profile.css">
 </head>
 
@@ -70,80 +114,23 @@ if (isset($_GET['unblock']) AND is_numeric($_GET['unblock']) AND $userid != -1) 
 
     <div class="row text-center justify-content-center align-items-center" style="width: 100vw;margin-bottom: 42px;">
         <div class="col-auto text-center">
-            <h1 class="text-center" style="color: rgb(222,72,62);">Éditez votre profil</h1>
+            <h1 class="text-center" style="color: rgb(222,72,62);"><?= $head ?></h1>
         </div>
     </div>
 
+    <?= $accessDenied ?>
 
-    <div class="row no-gutters justify-content-center" style="width: 100vw;">
-        <div class="col-12 col-sm-12 col-md-12 col-lg-6 col-xl-4 text-uppercase" style="background-color: #343a40;">
-            <div class="table-responsive table-borderless">
-                <?= $Front->sideForm() ?>
-            </div>
-        </div>
-        <div class="col-12 col-sm-12 col-md-12 col-lg-6 col-xl-6" style="background-color: #ffffff;">
-            <h1 class="display-4" style="font-size: 37px;margin-top: 20px;margin-left: 28px;"><?= $title ?></h1>
-            <form style="margin-left: 32px;" method="post" action="" enctype="multipart/form-data">
-
-                <?= $Front->profileForm() ?>
-
-                <div class="form-group">
-                    <?php if ($page != 'blocked') { ?>
-                    <button class="btn btn-danger inputForm" type="submit" name="submit">Appliquer les modifications</button>
-                    <?php } ?>
-                    <?= $alert ?>
-                </div>
-            </form>
-        </div>
-    </div>
-
+    <?php if (isset($sec) AND $accessDenied == null) echo $Front->viewProfil($dataProfile); else if ($accessDenied == null) include('inc/editprofile.php'); ?>
 
     <script src="assets/js/jquery.min.js"></script>
     <script src="assets/bootstrap/js/bootstrap.min.js"></script>
     <script src="assets/js/bs-init.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/aos/2.1.1/aos.js"></script>
     <script src="assets/js/uploadfile.js"></script>
+    <script src="assets/js/loadFile.js"></script>
+    <script src="assets/js/locate.js"></script>
     <script src="assets/js/navbar.js"></script>
-
-    <script type="text/javascript">
-    
-    var loadFile = function(event, id) {
-        var output = document.getElementById(id);
-        output.src = URL.createObjectURL(event.target.files[0]);
-    };
-
-    if (document.getElementsByName("longitude"))
-        var longitude = document.getElementsByName("longitude")[0];
-    if (document.getElementsByName("latitude"))
-        var latitude  = document.getElementsByName("latitude")[0];
-
-    function geolocaliser() {
-        if (navigator.geolocation)
-            navigator.geolocation.getCurrentPosition(getPos);
-    }
-
-    function getPos(position) {
-        let button = document.getElementById("button");
-
-        longitude.value = position.coords.longitude;
-        latitude.value  = position.coords.latitude;
-        button.innerHTML = 'Vous avez été correctement géolocalisé !';
-        button.className = 'btn btn-success';
-        button.setAttribute("disabled", "");
-    }
-
-    function removeLine(remove) {
-        let tr = document.getElementById(remove);
-        let xhr = new XMLHttpRequest();
-        let url = window.location.href + '&unblock=' + remove.substr(5);
-
-        tr.style = 'display:none';
-        xhr.open('GET', url);
-        xhr.send();
-        console.log(xhr);
-    }
-
-    </script>
+    <script src="assets/js/ajaxreq.js"></script>
 
 </body>
 
