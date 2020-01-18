@@ -30,7 +30,7 @@ if (isset($_POST['newpass']) AND isset($_POST['pass']) AND isset($_POST['pass-c'
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Zina</title>
+    <title>Matcha</title>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Actor">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700">
@@ -44,12 +44,12 @@ if (isset($_POST['newpass']) AND isset($_POST['pass']) AND isset($_POST['pass-c'
     <div class="container-fluid">
         <div class="row mh-100vh">
 
-            <div class="col-lg-6 d-flex align-items-end" id="bg-block" style="background-image: url('assets/img/zina_bg.jpg');background-size: cover;background-position: center center;filter: brightness(5%) sepia(100%);">
+            <div class="col-lg-6 d-flex align-items-end" id="bg-block" style="background-image: url('assets/img/Matcha_bg.jpg');background-size: cover;background-position: center center;filter: brightness(5%) sepia(100%);">
             </div>
 
             <div class="col-10 col-sm-8 col-md-6 col-lg-6 offset-1 offset-sm-2 offset-md-3 offset-lg-0 align-self-center d-lg-flex align-items-lg-center align-self-lg-stretch bg-white p-5 rounded rounded-lg-0 my-5 my-lg-0" id="login-block">
                 <div class="m-auto w-lg-75 w-xl-50">
-                    <h2 class="text-info font-weight-light mb-5"><i class="fas fa-fire"></i> Z'INA</h2>
+                    <h2 class="text-info font-weight-light mb-5"><i class="fas fa-fire"></i> MATCHA</h2>
 
                     <?= $alert ?>
                     

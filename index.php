@@ -25,7 +25,7 @@ if (isset($_GET['logout'])) {
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Zina</title>
+    <title>Matcha</title>
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Actor">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Titillium+Web:400,600,700">
@@ -42,11 +42,11 @@ if (isset($_GET['logout'])) {
         <header>
 
 
-    <div class="bg-success d-flex align-items-center" style="height: 100vh;background-image: url('assets/img/zina_bg.jpg'); filter: grayscale(50%) saturate(50%);">
+    <div class="bg-success d-flex align-items-center" style="height: 100vh;background-image: url('assets/img/Matcha_bg.jpg');background-repeat: no-repeat; background-size: cover; filter: grayscale(50%) saturate(50%);">
 
         <div data-aos="fade" data-aos-duration="600" class="text-center w-100 text-white">
 
-            <h1 class="text-uppercase">Bienvenue sur z'ina</h1>
+            <h1 class="text-uppercase">Bienvenue sur Matcha</h1>
 
             <h2 class="font-weight-normal">
                 <em>Trouve ta voie ici !</em>
